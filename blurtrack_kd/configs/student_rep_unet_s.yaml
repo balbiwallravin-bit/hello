@@ -1,0 +1,22 @@
+data:
+  index: data/index.jsonl
+  frames_root: data/frames
+  pseudo_dir: data/pseudo
+  augment: false
+model:
+  base_ch: 16
+  stride: 4
+  gamma: 2.0
+  k_len: 4.0
+loss:
+  a: 1.0
+  b: 1.0
+  c: 0.5
+  d: 0.2
+  gamma: 2.0
+train:
+  batch_size: 2
+  lr: 0.001
+  epochs: 2
+  amp: true
+  out_dir: outputs
