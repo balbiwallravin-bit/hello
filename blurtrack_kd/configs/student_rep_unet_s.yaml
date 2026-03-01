@@ -1,0 +1,32 @@
+seed: 42
+
+data:
+  index: /home/lht/blurtrack/video_maked/index_train_ready.jsonl
+  frames_root: /home/lht/blurtrack/video_maked_ready
+  pseudo_dir: /home/lht/blurtrack/pseudo/heatmaps
+  augment: true
+  input_h: 288
+  input_w: 512
+
+train:
+  out_dir: /home/lht/blurtrack_kd_outputs/run_20260302_v1
+  lr: 0.001
+  epochs: 5
+  batch_size: 16
+  num_workers: 8
+  amp: true
+  log_every: 50
+  save_best: true
+
+model:
+  base_ch: 32
+  stride: 4
+  gamma: 2.0
+  k_len: 4.0
+
+loss:
+  a: 1.0
+  b: 1.0
+  c: 0.5
+  d: 0.2
+  gamma: 2.0
