@@ -16,8 +16,6 @@ from .pseudo_store import PseudoStore
 from .transforms import build_transform
 
 
-
-
 def _to_rel_or_abs(path: Path, base: Path) -> str:
     """Return relative path when possible, otherwise absolute path string."""
     try:
@@ -27,18 +25,10 @@ def _to_rel_or_abs(path: Path, base: Path) -> str:
 
 
 def build_index(frames_root: Path, out: Path, mode: str = "predict_middle", pseudo_root: Path | None = None) -> None:
-    """Build index for either generic frame dirs or segment_id/frames_roi layout.
-
-    For `/root/{segment_id}/frames_roi/*.jpg` this writes each json line with:
-    - segment_id
-    - t
-    - img_paths: [t-1, t, t+1] for `predict_middle`
-    - label_npz: `<pseudo_root>/<segment_id>/<stem>.npz`
-    """
+    """Build index for either generic frame dirs or segment_id/frames_roi layout."""
     records: list[dict[str, Any]] = []
     pseudo_root = pseudo_root or (frames_root.parent / "pseudo" / "heatmaps")
 
-    # Preferred real layout: frames_root/*/frames_roi/*.jpg
     segments = sorted([p for p in frames_root.iterdir() if p.is_dir() and (p / "frames_roi").is_dir()])
     if segments:
         for seg_dir in segments:
@@ -53,36 +43,37 @@ def build_index(frames_root: Path, out: Path, mode: str = "predict_middle", pseu
                     t = int(frames[i].stem)
                 except ValueError:
                     t = i
-                rec = {
-                    "sample_id": f"{seg_dir.name}_{t:05d}",
-                    "segment_id": seg_dir.name,
-                    "t": t,
-                    "img_paths": [
-                        _to_rel_or_abs(frames[i - 1], frames_root),
-                        _to_rel_or_abs(frames[i], frames_root),
-                        _to_rel_or_abs(frames[i + 1], frames_root),
-                    ],
-                    "label_npz": str(pseudo_root / seg_dir.name / f"{frames[i].stem}.npz"),
-                }
-                records.append(rec)
+                records.append(
+                    {
+                        "sample_id": f"{seg_dir.name}_{t:05d}",
+                        "segment_id": seg_dir.name,
+                        "t": t,
+                        "img_paths": [
+                            _to_rel_or_abs(frames[i - 1], frames_root),
+                            _to_rel_or_abs(frames[i], frames_root),
+                            _to_rel_or_abs(frames[i + 1], frames_root),
+                        ],
+                        "label_npz": str(pseudo_root / seg_dir.name / f"{frames[i].stem}.npz"),
+                    }
+                )
     else:
-        # Backward-compatible generic traversal.
         for vid_dir in sorted([p for p in frames_root.iterdir() if p.is_dir()]):
             frames = sorted(list(vid_dir.glob("*.jpg")) + list(vid_dir.glob("*.png")))
             for i in range(2, len(frames)):
                 target_i = i - 1 if mode == "predict_middle" else i
                 sid = f"{vid_dir.name}_{target_i:06d}"
-                rec = {
-                    "sample_id": sid,
-                    "video_id": vid_dir.name,
-                    "frames": [
-                        str(frames[i - 2].relative_to(frames_root)),
-                        str(frames[i - 1].relative_to(frames_root)),
-                        str(frames[i].relative_to(frames_root)),
-                    ],
-                    "target_frame": str(frames[target_i].relative_to(frames_root)),
-                }
-                records.append(rec)
+                records.append(
+                    {
+                        "sample_id": sid,
+                        "video_id": vid_dir.name,
+                        "frames": [
+                            str(frames[i - 2].relative_to(frames_root)),
+                            str(frames[i - 1].relative_to(frames_root)),
+                            str(frames[i].relative_to(frames_root)),
+                        ],
+                        "target_frame": str(frames[target_i].relative_to(frames_root)),
+                    }
+                )
 
     out.parent.mkdir(parents=True, exist_ok=True)
     with out.open("w", encoding="utf-8") as f:
@@ -115,7 +106,8 @@ class FrameWindowDataset(Dataset):
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         h = int(self.cfg_data.get("input_h", 288))
         w = int(self.cfg_data.get("input_w", 512))
-        img = cv2.resize(img, (w, h), interpolation=cv2.INTER_AREA)
+        interp = cv2.INTER_AREA if (img.shape[0] > h or img.shape[1] > w) else cv2.INTER_LINEAR
+        img = cv2.resize(img, (w, h), interpolation=interp)
         return img.astype(np.float32) / 255.0
 
     def _resolve_img_path(self, p: str) -> Path:

@@ -1,6 +1,7 @@
 seed: 42
 
 data:
+  # Real ready-index workflow
   index: /home/lht/blurtrack/video_maked/index_train_ready.jsonl
   frames_root: /home/lht/blurtrack/video_maked_ready
   pseudo_dir: /home/lht/blurtrack/pseudo/heatmaps
@@ -9,7 +10,7 @@ data:
   input_w: 512
 
 train:
-  out_dir: /home/lht/blurtrack_kd_outputs/run_20260302_v1
+  out_dir: /home/lht/blurtrack_kd_outputs/run_20260302_v2
   lr: 0.001
   epochs: 5
   batch_size: 16

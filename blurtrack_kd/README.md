@@ -4,6 +4,8 @@ TensorRT-friendly student distillation pipeline for 3-frame ping-pong blur track
 
 Dataset loader now force-resizes each frame to `288x512` before stacking to `[9,288,512]` for stable training.
 
+Conflict note: if your PR shows conflicts on README/config/dataset/model/train, keep this branch's latest versions for those files.
+
 ## Install
 
 ```bash
@@ -25,9 +27,9 @@ This supports real layout: `frames_root/{segment_id}/frames_roi/00000.jpg`, and 
 ```bash
 python -m src.teacher.teacher_runner \
   --index data/index.jsonl \
-  --frames_root data/frames \
+  --frames_root /home/lht/blurtrack/video_maked_ready \
   --teacher_onnx path/to/teacher.onnx \
-  --out_dir data/pseudo \
+  --out_dir /home/lht/blurtrack/pseudo \
   --stride 4 \
   --gamma 2.0 \
   --save_backend npz

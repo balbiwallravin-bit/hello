@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import argparse
 import inspect
+import random
 from pathlib import Path
 
+import numpy as np
 import torch
 import yaml
 from torch.amp import GradScaler, autocast
@@ -16,11 +18,20 @@ from src.losses.kd_losses import KDLoss
 from src.models.student_net import StudentRepUNetS
 
 
+def set_seed(seed: int) -> None:
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", required=True)
     args = ap.parse_args()
     cfg = yaml.safe_load(Path(args.config).read_text(encoding="utf-8"))
+    set_seed(int(cfg.get("seed", 42)))
 
     if "train" not in cfg or "lr" not in cfg["train"]:
         raise KeyError("Config must contain train.lr")

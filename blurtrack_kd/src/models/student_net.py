@@ -44,9 +44,17 @@ class StudentRepUNetS(nn.Module):
         self.enc1 = nn.Sequential(RepBlock(base_ch, base_ch, 1, use_se=True), RepBlock(base_ch, base_ch * 2, 2, use_se=True))
         self.enc2 = nn.Sequential(RepBlock(base_ch * 2, base_ch * 2), RepBlock(base_ch * 2, base_ch * 4, 2))
         self.mid = nn.Sequential(RepBlock(base_ch * 4, base_ch * 4), RepBlock(base_ch * 4, base_ch * 4))
-        self.up1 = nn.Sequential(nn.Upsample(scale_factor=2, mode="bilinear", align_corners=False), nn.Conv2d(base_ch * 4, base_ch * 2, 3, 1, 1), nn.SiLU(inplace=True))
+        self.up1 = nn.Sequential(
+            nn.Upsample(scale_factor=2, mode="bilinear", align_corners=False),
+            nn.Conv2d(base_ch * 4, base_ch * 2, 3, 1, 1),
+            nn.SiLU(inplace=True),
+        )
         self.dec1 = RepBlock(base_ch * 2, base_ch * 2)
-        self.up2 = nn.Sequential(nn.Upsample(scale_factor=2, mode="bilinear", align_corners=False), nn.Conv2d(base_ch * 2, base_ch, 3, 1, 1), nn.SiLU(inplace=True))
+        self.up2 = nn.Sequential(
+            nn.Upsample(scale_factor=2, mode="bilinear", align_corners=False),
+            nn.Conv2d(base_ch * 2, base_ch, 3, 1, 1),
+            nn.SiLU(inplace=True),
+        )
         self.dec2 = RepBlock(base_ch, base_ch)
         self.head = nn.Conv2d(base_ch, 1, 1)
         self.decoder = MomentDecoder(h=72, w=128, stride=stride, gamma=gamma, k_len=k_len)
@@ -61,6 +69,11 @@ class StudentRepUNetS(nn.Module):
         up2 = _match_hw(self.up2(d1), s)
         d2 = self.dec2(up2 + s)
         logits = self.head(d2)
+
+        # Keep decoder input stable at 72x128 (stride=4 for 288x512 default).
+        if logits.shape[-2:] != (72, 128):
+            logits = F.interpolate(logits, size=(72, 128), mode="bilinear", align_corners=False)
+
         prob = torch.sigmoid(logits)
         mo = self.decoder(prob)
         return StudentOutput(logits, prob, mo.mu_xy_img, mo.dir_xy, mo.l_img, mo.conf)
